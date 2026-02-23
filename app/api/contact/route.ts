@@ -22,11 +22,12 @@ export async function POST(request: Request) {
     if (!toEmail) {
       return NextResponse.json({ error: "Contact recipient is not configured" }, { status: 500 });
     }
+    const fromEmail = process.env.CONTACT_FROM_EMAIL ?? "onboarding@resend.dev";
 
     const resend = new Resend(apiKey);
 
-    await resend.emails.send({
-      from: "Gallery Contact <onboarding@resend.dev>",
+    const { error } = await resend.emails.send({
+      from: fromEmail,
       to: toEmail,
       subject: "New Inquiry from Website",
       replyTo: email,
@@ -36,9 +37,14 @@ Email: ${email}
 Message:
 ${message}`,
     });
+    if (error) {
+      console.error("Resend send failure", error);
+      return NextResponse.json({ error: "Failed to send" }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error("Contact API failure", error);
     return NextResponse.json({ error: "Failed to send" }, { status: 500 });
   }
 }
